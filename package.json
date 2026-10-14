@@ -1,0 +1,45 @@
+{
+  "name": "dsh-skin-kit",
+  "version": "1.0.0",
+  "description": "DSH 皮肤引擎：以 token 覆盖层给 DeepSeek Harness 换肤，内置 P5R 漫画等示例主题，不抢主题偏好、与任何第三方主题共存",
+  "type": "module",
+  "main": "index.js",
+  "license": "MIT",
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "theme",
+    "skin",
+    "plugin"
+  ],
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "node tools/embed-assets.mjs && node tools/build.mjs",
+    "check": "node tools/build.mjs --check"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-renderer",
+        "@deepseek-ai/dsh-client-ui-theme",
+        "@deepseek-ai/dsh-client-ui-settings"
+      ],
+      "platform": "web"
+    }
+  }
+}

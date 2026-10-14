@@ -1,0 +1,30 @@
+MIT License
+
+Copyright (c) 2026 dsh-skin-kit contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+注意：MIT 许可只覆盖本仓库的**代码**（引擎、构建工具、皮肤定义与示例配色）。
+
+`skins/p5r/` 下的美术资源（assets/station.jpg、assets/settings.jpg）不属于
+本仓库作者的原创作品，不随 MIT 许可授权，仅为本地演示保留。以
+《女神异闻录5》为代表的视觉语言与相关素材的权利归 ATLUS / SEGA 所有。
+公开分发前请按 skins/p5r/ASSETS.md 换成你有权使用的图片。

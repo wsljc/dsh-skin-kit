@@ -1,0 +1,7 @@
+# dsh bundle patch：把本插件插入 profile 的层栈。
+#
+# 本文件只负责「插入」。其余配置写在 profile 的 cordis.patch.yml 里
+# （同 id 覆盖 config），这样升级 / 重装本插件不会冲掉你的选择。
+- insert:
+    - id: skin-kit
+      name: 'dsh-skin-kit'

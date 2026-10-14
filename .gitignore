@@ -1,0 +1,22 @@
+# 依赖与编辑器
+node_modules/
+pnpm-lock.yaml
+package-lock.json
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# 调试与备份
+*.log
+*.bak
+*.bak2
+*.bak3
+*.tmp
+
+# 只给本机看的发布前清单
+TODO-BEFORE-PUBLISH.md
+
+# 注意：client.js 与 src/assets.generated.js 都是构建产物，但**要提交**。
+# 理由：装插件的人（以及 DSH 本身）直接读仓库里的 client.js，不跑构建。
+# CI 用 `npm run check` 保证它们与源码同步。
