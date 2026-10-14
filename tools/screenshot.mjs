@@ -33,8 +33,39 @@ const waitMs = Number((args.find((a) => a.startsWith('--wait=')) || '--wait=4500
 const probeOnly = args.includes('--probe');
 /** --eval=<表达式>：在页面里求值后打印（用于切换主题偏好等）。 */
 const evalExpr = (args.find((a) => a.startsWith('--eval=')) || '').slice('--eval='.length);
+/**
+ * --eval-b64=<base64>：同上，但表达式走 base64。
+ * 用途：脚本里有引号、$、换行时，命令行传参会把它们吃掉（PowerShell 尤其严重）。
+ * 编码一下最省事：node -e "..." 生成，或见 docs/ 下的探针脚本。
+ */
+const evalB64 = (args.find((a) => a.startsWith('--eval-b64=')) || '').slice('--eval-b64='.length);
+/**
+ * --eval2=<表达式>：在 eval 之后、截图之前再求值一次。
+ * 用途：eval 里点了会触发路由跳转的东西（执行上下文会被销毁，拿不到返回值），
+ * 于是把「读数」这步挪到 eval2，此时新页面已经加载完。
+ */
+const evalExpr2 = (args.find((a) => a.startsWith('--eval2=')) || '').slice('--eval2='.length);
+/** --eval2-b64=<base64>：同上，走 base64。 */
+const evalB642 = (args.find((a) => a.startsWith('--eval2-b64=')) || '').slice('--eval2-b64='.length);
+
+const decode = (b64, fallback) => (b64 ? Buffer.from(b64, 'base64').toString('utf8') : fallback);
 /** --lskeys：打印 localStorage 的全部键。 */
 const lsKeys = args.includes('--lskeys');
+/**
+ * --click=<选择器>：用 CDP 的原生鼠标事件点击第一个匹配元素。
+ * 为什么不用 element.click()：React 组件常把交互挂在真实指针事件上，
+ * 合成 click 不触发（实测侧栏会话项 DIV[role=treeitem] 就是如此）。
+ */
+const clickSel = (args.find((a) => a.startsWith('--click=')) || '').slice('--click='.length);
+/**
+ * --click-xy=x,y：直接按视口坐标点击。
+ * 用途：目标行在列表里按序排列、选择器不好写时（例如按标题文本挑第 N 个会话）。
+ */
+const clickXY = (args.find((a) => a.startsWith('--click-xy=')) || '').slice('--click-xy='.length);
+/**
+ * --click-nth=<n>：配合 --click 用，点第 n 个匹配（从 0 起）。
+ */
+const clickNth = Number((args.find((a) => a.startsWith('--click-nth=')) || '--click-nth=0').split('=')[1]);
 
 const EDGE = [
   'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
@@ -207,15 +238,67 @@ const main = async () => {
     await sleep(waitMs);
   }
 
+  // 用原生鼠标事件点击（React 的交互常挂在真实指针事件上）。
+  // 放在 eval 之前：点完往往要等导航/重渲染，之后的 eval 才读得到新状态。
+  if (clickSel || clickXY) {
+    let pt = null;
+    if (clickXY) {
+      const [x, y] = clickXY.split(',').map(Number);
+      pt = { x, y };
+    } else {
+      const box = await send('Runtime.evaluate', {
+        expression: `(() => {
+          const list = [...document.querySelectorAll(${JSON.stringify(clickSel)})];
+          const el = list[${Number.isFinite(clickNth) ? clickNth : 0}];
+          if (!el) return null;
+          const r = el.getBoundingClientRect();
+          return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+        })()`,
+        returnByValue: true,
+      });
+      pt = box.result && box.result.value;
+    }
+
+    if (!pt) {
+      console.log(`  click → 找不到目标（${clickXY || clickSel}）`);
+    } else {
+      const base = { x: pt.x, y: pt.y, button: 'left', clickCount: 1 };
+      await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: pt.x, y: pt.y });
+      await send('Input.dispatchMouseEvent', { type: 'mousePressed', ...base });
+      await send('Input.dispatchMouseEvent', { type: 'mouseReleased', ...base });
+      console.log(`  click → ${clickXY || clickSel} @ (${Math.round(pt.x)}, ${Math.round(pt.y)})`);
+      await sleep(waitMs);
+    }
+  }
+
   // 任意表达式求值（调试用）。eval 里自己 await 到稳定状态即可，
   // 之后不再等待、直接截图，避免把 UI 又转回默认态。
-  if (evalExpr) {
+  const expr1 = decode(evalB64, evalExpr);
+  if (expr1) {
     const r = await send('Runtime.evaluate', {
-      expression: evalExpr,
+      expression: expr1,
       returnByValue: true,
       awaitPromise: true,
     });
     console.log('  eval →', JSON.stringify(r.result && r.result.value));
+    if (r.exceptionDetails) {
+      console.log('  eval 异常 →', r.exceptionDetails.exception?.description || r.exceptionDetails.text);
+    }
+  }
+
+  // eval 可能触发导航（点会话等），等页面稳下来再跑 eval2。
+  const expr2 = decode(evalB642, evalExpr2);
+  if (expr2) {
+    await sleep(waitMs);
+    const r2 = await send('Runtime.evaluate', {
+      expression: expr2,
+      returnByValue: true,
+      awaitPromise: true,
+    });
+    console.log('  eval2 →', JSON.stringify(r2.result && r2.result.value));
+    if (r2.exceptionDetails) {
+      console.log('  eval2 异常 →', r2.exceptionDetails.exception?.description || r2.exceptionDetails.text);
+    }
   }
 
   if (lsKeys) {

@@ -111,12 +111,40 @@ dom: {
 
 1. **token 变量**（最稳）——`var(--dsw-alias-*)`，永不失效
 2. **元素选择器**——`button`、`input`、`[role="button"]`
-3. **稳定 data 属性**——`[data-shortcut-modal="settings"]`、`[data-composer-card]`、
-   `[data-phase]`、`[data-sidebar-right-panel]`
+3. **稳定 data 属性**——`[data-conversation-tabs]`、`[data-shortcut-modal="settings"]`、
+   `[data-composer-card]`、`[data-phase]`、`[data-sidebar-right-panel]`
 4. **模块名子串**（尽力而为）——`[class*="markdown"]`、`[class*="bubble"]`、
    `[class*="_tabs_"]`。官方编译产物会保留这些语义片段，但官方**没有承诺**它们不变
 
 **不要写完整哈希类名**（`BynINW_frame` 这种），升级必失效。
+
+### 子串选择器的陷阱：一个名字可能不是你要的组件
+
+`[class*="_tabs_"]` 看着像「顶部那个『对话 / 轨迹』切换器」，实际打的是官方
+**另一个**通用分段控件。真正的视图切换器来自 conversation 包，得用稳定属性命中：
+
+```css
+/* ✅ 精确命中顶部视图切换器 */
+body [data-conversation-tabs] > button[aria-selected='true'] {
+  background-color: var(--dsw-alias-brand-primary) !important;
+  color: #fffdf4 !important;
+}
+/* 官方选中下划线是 ::after 画的，想改用色块表达就先清掉它 */
+body [data-conversation-tabs] > button::after { content: none !important; }
+```
+
+踩过的坑：只靠 `_tabs_` 一条规则时，这两个键被全局 `button` 规则套成
+「斜切黑框 + 各自描边」，红下划线还被压在框下面。**写装饰前先在 DevTools 里
+选中真实元素、确认它到底带哪些属性**，别凭类名猜。
+
+顺带一提：用 `body` 前缀是为了把特异性抬到全局 `button` 规则之上——
+官方那些规则常常也带 `!important`，特异性不够时你的规则会被压过去。
+
+### 给组件加样式前，先看它有没有你要的 DOM
+
+顶部视图切换器**没有滑动指示条元素**（那是 `_tabs_` 那个控件才有的），
+所以选中态只能用「长在键上的红块」表达，做不出滑动动画。这不是偷懒，
+是组件结构决定的。先看 DOM 再决定能做到什么程度。
 
 ### 尊重 prefers-reduced-motion
 

@@ -121,6 +121,38 @@ node tools/build.mjs          # 全部 → client.js
 写它们升级必失效；配色全走 token 才稳。装饰层可以用元素选择器与
 `[class*="markdown"]` 这类**模块名子串**，但那是尽力而为、不保证跨版本。
 
+## P5R 皮肤的两处刻意设计
+
+这两处看着像「漏改」，其实是想清楚之后才这么写的——改之前请先读完理由。
+
+### 1. 顶部「对话 / 轨迹」切换器不走 `_tabs_`
+
+`[class*="_tabs_"]` 打的是官方**另一个**通用分段控件（滑动指示条 + 透明 tab），
+**不是**顶部那个视图切换器。视图切换器来自 conversation 包，容器带稳定属性
+`data-conversation-tabs`，两个键是其中的原生 `<button>`，选中态由 `aria-selected`
+标记，官方选中下划线是 `::after` 画的 2px 红条。
+
+之前的写法只靠 `_tabs_` 一条规则，结果这两个键被全局 `button` 规则套成
+「斜切黑框 + 各自描边」，红下划线还被压在框下面——就是那处不协调。现在拆成两块：
+
+| 块 | 目标 | 做法 |
+|---|---|---|
+| `[class*="_tabs_"]` | 通用分段控件 | 外框漫画框；tab 不斜切、不单独描边；选中态交给红色滑动指示条 |
+| `body [data-conversation-tabs]` | **顶部「对话 / 轨迹」** | 外框厚漫画框；键不斜切、不单独描边；选中态 = 红块 + 白描边 + 白字 |
+
+两个块互不干扰：前者靠 `[class*="_tabs_"]` 的**直接子元素**限定作用域，
+后者靠 `data-conversation-tabs` 精确命中，并用 `body` 前缀把特异性抬上去。
+
+官方组件**没有滑动指示条元素**，红块直接长在选中的键上，所以**没有滑动动画**——
+这是组件的结构决定的，不是没做。同时用 `button::after { content: none }` 干掉
+官方那条红下划线，避免红条与红块叠着。
+
+### 2. 左上角品牌 logo 被切断交互
+
+`body button[class*="_brand"]` 那条规则做两件事：剥掉全局 `button` 加上的漫画外壳，
+再用 `pointer-events: none` 切断一切交互（无 hover 动效、无点击新建会话、无手型光标）。
+它原本是 `<button aria-label="新建会话">`，作为「纯 logo」使用更合适。
+
 ## 构建与校验
 
 ```powershell
@@ -140,7 +172,9 @@ node tools/verify-live.mjs    # 对着运行中的 GUI 验证插件真的被页�
 
 - 皮肤选择存在浏览器 `localStorage`（`dsh.skin.*`），**不写入宿主设置**——
   宿主主题 schema 只认 `light` / `dark` / `system`，自定义 id 不会持久化。
-- 装饰层用 `[class*="..."]` 属性子串匹配，官方若大改容器类名，装饰可能失效，
+- 装饰层的稳定性分三档：**token 变量**最稳（永不失效）；**稳定 data 属性**
+  （`data-conversation-tabs`、`data-shortcut-modal`、`data-composer-card`）次之；
+  **`[class*="..."]` 模块名子串**最弱，官方若大改编译产物的命名，这部分会失效，
   但**配色不受影响**（配色全走 token）。
 - 只换皮：不动布局、间距、字号与任何 JS 逻辑。
 - 客户端 bundle 必须是**单个自包含文件**（`window.__ModuleLoader__.load({ id, factory })`，
